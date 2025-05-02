@@ -2,11 +2,11 @@
 --[[
 =head1 NAME
 
-applets.CustomClock.CustomClockMeta - Daylight Clock meta-info
+applets.JLCustomClock.JLCustomClockMeta - Daylight Clock meta-info
 
 =head1 DESCRIPTION
 
-See L<applets.CustomClock.CustomClockApplet>.
+See L<applets.JLCustomClock.JLCustomClockApplet>.
 
 =head1 FUNCTIONS
 
@@ -36,8 +36,8 @@ function jiveVersion(self)
 end
 
 function registerApplet(self)
-	jiveMain:addItem(self:menuItem('appletCustomClock', 'home', "SCREENSAVER_CUSTOMCLOCK", function(applet, ...) applet:openMenu(...) end, 900))
-	jiveMain:disableItemById('appletCustomClock')
+	jiveMain:addItem(self:menuItem('appletJLCustomClock', 'home', "SCREENSAVER_CUSTOMCLOCK", function(applet, ...) applet:openMenu(...) end, 900))
+	jiveMain:disableItemById('appletJLCustomClock')
 	jiveMain:addItem(self:menuItem('appletExtrasCustomClock', 'extras', "SCREENSAVER_CUSTOMCLOCK", function(applet, ...) applet:openMenu(...) end, 900))
 	self:registerService("addCustomClockImageType")
 	self:registerService("addCustomClockTextType")
@@ -53,7 +53,7 @@ function configureApplet(self)
 		end
 		appletManager:callService("addScreenSaver", 
 			tostring(self:string("SCREENSAVER_CUSTOMCLOCK")).."#"..i..style, 
-			"CustomClock",
+			"JLCustomClock",
 			"openScreensaver"..i, 
 			self:string("SCREENSAVER_CUSTOMCLOCK_SETTINGS"), 
 			"openSettings", 
@@ -63,7 +63,7 @@ function configureApplet(self)
 	if self:getSettings()["confignowplayingstyle"] then
 		log:info("Registering custom Now Playing screen")
 		self:registerService('goNowPlaying')
-		appletManager:loadApplet("CustomClock")
+		appletManager:loadApplet("JLCustomClock")
 	else
 		log:info("Using standard Now Playing screen")
 	end

@@ -2,7 +2,7 @@
 --[[
 =head1 NAME
 
-applets.CustomClock.CustomClockApplet - Clock screensaver with customizable graphics
+applets.JLCustomClock.JLCustomClockApplet - Clock screensaver with customizable graphics
 
 =head1 DESCRIPTION
 
@@ -11,7 +11,7 @@ a number of different graphics and information to show
 
 =head1 FUNCTIONS
 
-Applet related methods are described in L<jive.Applet>. CustomClockApplet overrides the
+Applet related methods are described in L<jive.Applet>. JLCustomClockApplet overrides the
 following methods:
 
 =cut
@@ -49,12 +49,15 @@ local RadioGroup       = require("jive.ui.RadioGroup")
 local RadioButton      = require("jive.ui.RadioButton")
 local Timer            = require("jive.ui.Timer")
 
-local CustomVUMeter    = require("applets.CustomClock.CustomVUMeter")
-local CustomSpectrumMeter    = require("applets.CustomClock.CustomSpectrumMeter")
+-- TEC 
+-- Looks like CustomVUMeter and CustomSpectrumMeter require "squeezeplay.decode"
+--    Since squeezelite/jivelite not same, may have to find equivalent? Is there a "squeezelite.decode"?
+-- TEC1 local CustomVUMeter    = require("applets.CustomClock.CustomVUMeter")
+-- TEC1 local CustomSpectrumMeter    = require("applets.CustomClock.CustomSpectrumMeter")
 
 local SocketHttp       = require("jive.net.SocketHttp")
 local RequestHttp      = require("jive.net.RequestHttp")
-local json             = require("json")
+local json             = require("cjson")
 
 local debug            = require("jive.utils.debug")
 
@@ -596,22 +599,22 @@ function openScreensaver(self,mode, transition)
 				}
 				self.items[no] = Group("item"..no,childItems)
 				self.window:addWidget(self.items[no])
-			elseif string.find(item.itemtype,"digitalvumeter$") then
-				local childItems = {
-					itemno = CustomVUMeter("item"..no,"digital",_getString(item.channels,nil))
-				}
-				self.items[no] = Group("item"..no,childItems)
-				self.window:addWidget(self.items[no])
-			elseif string.find(item.itemtype,"analogvumeter$") then
-				local childItems = {
-					itemno = CustomVUMeter("item"..no,"analog",_getString(item.channels,nil))
-				}
-				self.items[no] = Group("item"..no,childItems)
-				self.window:addWidget(self.items[no])
-			elseif string.find(item.itemtype,"spectrummeter$") then
-				local childItems = {
-					itemno = CustomSpectrumMeter("item"..no,_getString(item.channels,nil))
-				}
+-- TEC1			elseif string.find(item.itemtype,"digitalvumeter$") then
+-- TEC1				local childItems = {
+-- TEC1					itemno = CustomVUMeter("item"..no,"digital",_getString(item.channels,nil))
+-- TEC1				}
+-- TEC1				self.items[no] = Group("item"..no,childItems)
+-- TEC1				self.window:addWidget(self.items[no])
+-- TEC1			elseif string.find(item.itemtype,"analogvumeter$") then
+-- TEC1				local childItems = {
+-- TEC1					itemno = CustomVUMeter("item"..no,"analog",_getString(item.channels,nil))
+-- TEC1				}
+-- TEC1				self.items[no] = Group("item"..no,childItems)
+-- TEC1				self.window:addWidget(self.items[no])
+-- TEC1			elseif string.find(item.itemtype,"spectrummeter$") then
+-- TEC1				local childItems = {
+-- TEC1					itemno = CustomSpectrumMeter("item"..no,_getString(item.channels,nil))
+-- TEC1				}
 				for attr,value in pairs(item) do
 					if string.find(attr,"color$") and _getString(value,nil) then
 						local color = string.gsub(attr,"color$","")
@@ -937,6 +940,8 @@ function openSettings(self)
 		self.model = "touch"
 	elseif width == 320 then
 		self.model = "radio"
+	elseif width == 800 then
+		self.model = "jivelite800x480"
 	else
 		self.model = "controller"
 	end
@@ -1012,14 +1017,14 @@ function openSettings(self)
 	end
 
 	local appletdir = _getAppletDir()
-	if lfs.attributes(appletdir.."CustomClock/fonts") or lfs.attributes(appletdir.."CustomClock/images") then
+	if lfs.attributes(appletdir.."JLCustomClock/fonts") or lfs.attributes(appletdir.."JLCustomClock/images") then
 		menu:addItem(
 			{
 				text = self:string("SCREENSAVER_CUSTOMCLOCK_SETTINGS_CLEAR_CACHE"), 
 				sound = "WINDOWSHOW",
 				callback = function(event, menuItem)
-					os.execute("rm -rf \""..appletdir.."CustomClock/fonts\"")
-					os.execute("rm -rf \""..appletdir.."CustomClock/images\"")
+					os.execute("rm -rf \""..appletdir.."JLCustomClock/fonts\"")
+					os.execute("rm -rf \""..appletdir.."JLCustomClock/images\"")
 					self.settingsWindow:hide()
 					self.settingsWindow = nil
 					self:openSettings()
@@ -1360,7 +1365,7 @@ function defineSettingStyleSink(self,title,mode,data)
 					self:_storeSettingsWithoutCache()
 					appletManager:callService("addScreenSaver", 
 						tostring(self:string("SCREENSAVER_CUSTOMCLOCK")).."#"..string.gsub(mode,"^config",""), 
-						"CustomClock",
+						"JLCustomClock",
 						"openScreensaver"..string.gsub(mode,"^config",""), 
 						self:string("SCREENSAVER_CUSTOMCLOCK_SETTINGS"), 
 						"openSettings", 
@@ -1426,14 +1431,14 @@ function defineSettingStyleSink(self,title,mode,data)
 									self:_storeSettingsWithoutCache()
 									if mode == "confignowplaying" then
 										log:info("Changing to custom Now Playing applet")
-										appletManager:registerService("CustomClock",'goNowPlaying')
+										appletManager:registerService("JLCustomClock",'goNowPlaying')
 										self:_installCustomNowPlaying()
 									elseif mode == "configalarmactive" then
 										appletManager:callService("registerAlternativeAlarmWindow","openCustomClockAlarmWindow")
 									else
 										appletManager:callService("addScreenSaver", 
 											tostring(self:string("SCREENSAVER_CUSTOMCLOCK")).."#"..string.gsub(mode,"^config","")..": "..self:getSettings()[mode.."style"], 
-											"CustomClock",
+											"JLCustomClock",
 											"openScreensaver"..string.gsub(mode,"^config",""), 
 											self:string("SCREENSAVER_CUSTOMCLOCK_SETTINGS"), 
 											"openSettings", 
@@ -1538,19 +1543,19 @@ function _retrieveFont(self,fonturl,fontfile,fontSize)
 
 		local luadir = _getLuaDir()
 		local appletdir = _getAppletDir()
-		lfs.mkdir(appletdir.."CustomClock/fonts")
-		if lfs.attributes(appletdir.."CustomClock/fonts/"..fontfile) ~= nil then
-			return self:_loadFont(appletdir.."CustomClock/fonts/"..fontfile,fontSize)
+		lfs.mkdir(appletdir.."JLCustomClock/fonts")
+		if lfs.attributes(appletdir.."JLCustomClock/fonts/"..fontfile) ~= nil then
+			return self:_loadFont(appletdir.."JLCustomClock/fonts/"..fontfile,fontSize)
 		elseif lfs.attributes(luadir.."fonts/"..fontfile) ~= nil then
 			return self:_loadFont("fonts/"..fontfile,fontSize)
 		else
 			local req = nil
 			log:debug("Getting "..fonturl)
 			if not string.find(fonturl,"%.ttf$") and not string.find(fonturl,"%.TTF$")then
-				local sink = ltn12.sink.chain(zip.filter(),self:_downloadFontZipFile(appletdir.."CustomClock/fonts/"))
+				local sink = ltn12.sink.chain(zip.filter(),self:_downloadFontZipFile(appletdir.."JLCustomClock/fonts/"))
 				req = RequestHttp(sink, 'GET', fonturl, {stream = true})
 			else
-				req = RequestHttp(self:_downloadFontFile(appletdir.."CustomClock/fonts/",fontfile), 'GET', fonturl, {stream = true})
+				req = RequestHttp(self:_downloadFontFile(appletdir.."JLCustomClock/fonts/",fontfile), 'GET', fonturl, {stream = true})
 			end
 			local uri = req:getURI()
 
@@ -4034,6 +4039,8 @@ function _retrieveImage(self,url,imageType,allowProxy,dynamic,width,height,clipX
 	local imageport = tonumber("80")
 	local imagepath = ""
 
+	allowProxy = "false"
+
 	if not _getString(url,nil) then
 		return
 	end
@@ -4080,9 +4087,9 @@ function _retrieveImage(self,url,imageType,allowProxy,dynamic,width,height,clipX
 		if height then
 			cacheName = cacheName.."-h"..height
 		end
-		if _getString(dynamic,"false") == "false" and lfs.attributes(appletdir.."CustomClock/images/"..cacheName) then
+		if _getString(dynamic,"false") == "false" and lfs.attributes(appletdir.."JLCustomClock/images/"..cacheName) then
 			log:debug("Image found in cache: "..cacheName)
-			local fh = io.open(appletdir.."CustomClock/images/"..cacheName, "rb")
+			local fh = io.open(appletdir.."JLCustomClock/images/"..cacheName, "rb")
 			local chunk = fh:read("*all")
 			fh:close()
 			self:_retrieveImageData(url,imageType,chunk,clipX,clipY,clipWidth,clipHeight)
@@ -4092,14 +4099,14 @@ function _retrieveImage(self,url,imageType,allowProxy,dynamic,width,height,clipX
 			local req = RequestHttp(function(chunk, err)
 					if chunk then
 						if _getString(dynamic,"false") == "false" then
-							lfs.mkdir(appletdir.."CustomClock/images")
-					                local fh = io.open(appletdir.."CustomClock/images/"..cacheName, "w")
+							lfs.mkdir(appletdir.."JLCustomClock/images")
+					                local fh = io.open(appletdir.."JLCustomClock/images/"..cacheName, "w")
 					                fh:write(chunk)
 							fh:close()
 						end
 						self:_retrieveImageData(url,imageType,chunk,clipX,clipY,clipWidth,clipHeight)
 					elseif err then
-						log:warn("error loading picture " .. url)
+						log:warn("error loading picture " .. url .. " (" .. err .. ")")
 					end
 				end,
 				'GET', imagepath)
