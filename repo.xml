@@ -1,0 +1,15 @@
+<?xml version='1.0' standalone='yes'?>
+<extensions>
+   <applets>
+     <applet name="JLCustomClock" version="1.1.5" minTarget="0.1" maxTarget="*" target="jivelite">
+       <title lang="EN">Jivelite CustomClock</title>
+       <desc lang="EN">Modified Custom Clock for Jivelite</desc>
+       <creator>erland, tcutting</creator> 
+       <url>http://gitub.com/piCorePlayer/squeezebox-customclock/releases/download/2.0.0/JLCustomClock.zip</url>
+       <sha>9f5a2f1c0bc9fd485c97af3191fa62f5b79216b3</sha>
+     </applet>
+   </applets>
+   <details>
+       <title lang="EN">Jivelite CustomClock</title>
+   </details>
+</extensions>
