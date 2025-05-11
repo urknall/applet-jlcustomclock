@@ -1,12 +1,12 @@
 <?xml version='1.0' standalone='yes'?>
 <extensions>
   <applets>
-    <applet version="2.0.3" target="jivelite" name="JLCustomClock" minTarget="0.1" maxTarget="*">
-      <url>http://customclock.pcplayer.org/JLCustomClock.zip</url>
+    <applet version="2.0.3" target="jivelite" maxTarget="*" minTarget="0.1" name="JLCustomClock">
       <desc lang="EN">Modified Custom Clock for Jivelite</desc>
-      <title lang="EN">Jivelite CustomClock</title>
-      <sha>cd867e9d69bb8dd283c69259e4e51c5ecc6d57d2</sha>
+      <sha>5485f8960af906c151fc37a4e1e9678539e7f4b3</sha>
       <creator>erland, tcutting</creator>
+      <url>http://jivelite.picoreplayer.org/JLCustomClock.zip</url>
+      <title lang="EN">Jivelite CustomClock</title>
     </applet>
   </applets>
   <details>
