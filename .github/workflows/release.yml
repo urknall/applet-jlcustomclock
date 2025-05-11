@@ -36,26 +36,20 @@ jobs:
           sudo apt-get install -y libxml-simple-perl libdigest-sha-perl
 
       - name: Update SHA and Version in repo.xml
+        working-directory: ./gh-pages
         id: tag
         run: |
           url="http://customclock.pcplayer.org"
-          perl release.pl repo.xml ${{ steps.set-version.outputs.version }} JLCustomClock.zip $url
-
-      - name: Update Master Repository
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add repo.xml
-          git commit -m "Update repo.xml for release ${{ steps.set-version.outputs.version }}"
-          git push origin HEAD:master
+          perl ../release.pl repo.xml ${{ steps.set-version.outputs.version }} JLCustomClock.zip $url
 
       - name: Update pages Repository
         working-directory: ./gh-pages
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
+          git add repo.xml
           git add JLCustomClock.zip
-          git commit -m "Update JLCustomClock for release ${{ steps.set-version.outputs.version }}"
+          git commit -m "Update JLCustomClock for Release ${{ steps.set-version.outputs.version }}"
           git push origin HEAD:gh-pages
 
       - name: Create Release
