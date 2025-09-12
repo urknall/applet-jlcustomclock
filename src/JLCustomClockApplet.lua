@@ -2284,7 +2284,7 @@ function _updateRSSItem(self,category,items)
 								source = source,
 								title = title,
 								description = description,
-								credot = credit,
+								credit = credit,
 								url = url
 							}
 							index=index+1
