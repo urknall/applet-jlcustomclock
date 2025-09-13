@@ -4033,17 +4033,109 @@ function _reDrawAnalog(self,screen)
 	end
 end
 
+local function _chooseProxyExt(srcUrl)
+    local u = (srcUrl or ""):lower()
+    log:debug("_chooseProxyExt: srcUrl=" .. tostring(srcUrl))
+
+    -- Supported extensions by LMS proxy
+    local validExt = {
+        png = true, jpg = true, jpeg = true, gif = true, bmp = true,
+        webp = true, svg = true, ico = true
+    }
+
+    -- Try to extract from the last filename in the path
+    local last = u:match("/([^/?#]+)$") or ""
+    log:debug("_chooseProxyExt: last filename: " .. tostring(last))
+    local ext = last:match("%.([a-zA-Z0-9]+)$")
+    if ext then ext = ext:lower() end
+    log:debug("_chooseProxyExt: after last filename, ext=" .. tostring(ext))
+    if ext and validExt[ext] then
+        log:debug("_chooseProxyExt: returning from last filename: " .. ext)
+        return ext
+    end
+
+    log:debug("_chooseProxyExt: fallback to jpg")
+    return "jpg"
+end
+
+local function buildImageProxyBarePath(srcUrl)
+  return "/imageproxy/" .. string.urlEncode(srcUrl) .. "/image"
+end
+
+
+local function buildImageProxyPath(srcUrl, w, h, clipX, clipY, clipWidth, clipHeight)
+    local nw = tonumber(w) or 0
+    local nh = tonumber(h) or 0
+
+    -- Add bucket logic here
+    local bucket = CB_BUCKET_SECONDS or 10
+    local urlWithBucket = srcUrl
+    if bucket > 0 then
+        local sep = (urlWithBucket:find("%?") and "&") or "?"
+        local ts = math.floor(os.time() / bucket)
+        urlWithBucket = urlWithBucket .. sep .. "cb=" .. ts
+    end
+
+    -- Auto-detect mode
+    local mode = nil
+    if nw > 0 and nh > 0 then
+        if clipX or clipY or clipWidth or clipHeight then
+            mode = "p" -- pad
+        else
+            mode = "o" -- crop/fill (Resize & crop to fill (cover)) maybe we need to use here "m" Resize to max fit, no pad/crop, needs testing 
+        end
+    end
+
+    -- If neither width nor height is set, use /image (original)
+    if nw == 0 and nh == 0 then
+        log:debug("buildImageProxyPath: srcUrl=" .. tostring(urlWithBucket) .. " w=" .. tostring(w) .. " h=" ..
+                      tostring(h) .. " mode=nil (no resize)")
+        return "/imageproxy/" .. string.urlEncode(urlWithBucket) .. "/image"
+    else
+        local ext = _chooseProxyExt and _chooseProxyExt(srcUrl) or "jpg"
+        local suffix = "/image_" .. tostring(nw) .. "x" .. tostring(nh)
+        if mode then
+            suffix = suffix .. "_" .. mode
+        end
+        log:debug("buildImageProxyPath: srcUrl=" .. tostring(urlWithBucket) .. " w=" .. tostring(w) .. " h=" ..
+                      tostring(h) .. " mode=" .. tostring(mode) .. " ext=" .. tostring(ext))
+        return "/imageproxy/" .. string.urlEncode(urlWithBucket) .. suffix .. "." .. ext
+    end
+end
+
+
+local function _getLMSHostPort()
+    local player = appletManager and
+                       (appletManager:callService("getCurrentPlayer") or appletManager:callService("getSelectedPlayer") or
+                           appletManager:callService("getActivePlayer"))
+    if player and player.getSlimServer then
+        local server = player:getSlimServer()
+        if server and server.getIpPort then
+            local a, b = server:getIpPort()
+            if type(a) == "string" and not b then
+                local ip, port = a:match("^([^:]+):(%d+)$")
+                if ip and port then
+                    return ip, tonumber(port)
+                end
+            elseif a and b then
+                return a, tonumber(b)
+            end
+        end
+    end
+    return "127.0.0.1", 9000
+end
+
+
 function _retrieveImage(self,url,imageType,allowProxy,dynamic,width,height,clipX,clipY,clipWidth,clipHeight)
 	local imagehost = ""
 	local imageport = tonumber("80")
 	local imagepath = ""
 
-	allowProxy = "false"
 
 	if not _getString(url,nil) then
 		return
 	end
-	local start,stop,value = string.find(url,"http://([^/]+)")
+	local start,stop,value = string.find(url,"^https?://([^/]+)")
 	if value and value != "" then
 		imagehost = value
 		local start, stop,value = string.find(imagehost,":(.+)$")
@@ -4052,31 +4144,33 @@ function _retrieveImage(self,url,imageType,allowProxy,dynamic,width,height,clipX
 			imagehost = string.gsub(imagehost,":"..imageport,"")
 		end
 	end
-	start,stop,value = string.find(url,"http://[^/]+(.+)")
+	start,stop,value = string.find(url,"^https?://[^/]+(.+)")
 	if value and value != "" then
 		imagepath = value
 	end
 
 	if imagepath != "" and imagehost != "" then
- 		if allowProxy == "false" or
-			string.find(url, "^http://192%.168") or
-			string.find(url, "^http://172%.16%.") or
-			string.find(url, "^http://10%.") then
-			-- Use direct url
-		else
-                        imagehost = jnt:getSNHostname()
-			imageport = tonumber(80)
-			imagepath = '/public/imageproxy?u=' .. string.urlEncode(url)
-			if width then
-				imagepath = imagepath.."&w="..width
-			end				
-			if height then
-				imagepath = imagepath.."&h="..height
-			end
-			if width or height then
-				imagepath = imagepath.."&m=p"
-			end				
-                end
+
+    		-- Decide proxy usage FIRST (HTTPS short-circuits to LMS)
+    		local isHttp    = (string.find(url, "^http://") ~= nil)
+    		local isHttps   = (string.find(url, "^https://") ~= nil)
+    		local nw, nh    = tonumber(width), tonumber(height)
+		local hasAnySize = (nw and nw > 0) or (nh and nh > 0)
+		local isLMSProxy = (tostring(allowProxy or "false") == "true")
+    		local useLMSProxy = isHttps or (isHttp and hasAnySize and isLMSProxy)
+    		if useLMSProxy then
+			local lmsHost, lmsPort = _getLMSHostPort()
+    			imagehost  = lmsHost
+    			imageport  = tonumber(lmsPort)
+			imagepath = buildImageProxyPath(
+    			url,
+    			(nw and nw > 0) and width  or nil,
+    			(nh and nh > 0) and height or nil,
+    			clipX, clipY, clipWidth, clipHeight)		
+    		else
+			-- use direct URL
+    		end
+		
 		log:debug("Getting image for "..imageType.." from "..imagehost.." and "..imageport.." and "..imagepath)
 		local appletdir = _getAppletDir()
 		local cacheName = string.urlEncode(url)
